@@ -1,5 +1,5 @@
 [build]
-  command = "npx prisma generate && npx next build"
+  command = "npx prisma db push --skip-generate && npx prisma generate && node prisma/seed.mjs && npx next build"
   publish = ".next"
 
 [[plugins]]
@@ -7,3 +7,5 @@
 
 [build.environment]
   NODE_VERSION = "22"
+  DATABASE_URL = "file:./dev.db"
+  JWT_SECRET = "ecogen-super-secret-key-2026-production"
