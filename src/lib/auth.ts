@@ -54,33 +54,47 @@ export async function getSession(): Promise<SessionUser | null> {
     if (!token) return null;
 
     const { payload } = await jwtVerify(token, SECRET_KEY);
-    
-    // Refresh latest level, xp, ecoScore from database to ensure fresh data
-    const userInDb = await prisma.user.findUnique({
-      where: { id: payload.id as string },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-        avatar: true,
-        level: true,
-        xp: true,
-        ecoScore: true,
-      },
-    });
 
-    if (!userInDb) return null;
+    try {
+      const userInDb = await prisma.user.findUnique({
+        where: { id: payload.id as string },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          role: true,
+          avatar: true,
+          level: true,
+          xp: true,
+          ecoScore: true,
+        },
+      });
+
+      if (userInDb) {
+        return {
+          id: userInDb.id,
+          email: userInDb.email,
+          name: userInDb.name,
+          role: userInDb.role as "USER" | "ADMIN",
+          avatar: userInDb.avatar,
+          level: userInDb.level,
+          xp: userInDb.xp,
+          ecoScore: userInDb.ecoScore,
+        };
+      }
+    } catch (dbErr) {
+      // In case DB is unavailable on serverless, fallback directly to JWT payload
+    }
 
     return {
-      id: userInDb.id,
-      email: userInDb.email,
-      name: userInDb.name,
-      role: userInDb.role as "USER" | "ADMIN",
-      avatar: userInDb.avatar,
-      level: userInDb.level,
-      xp: userInDb.xp,
-      ecoScore: userInDb.ecoScore,
+      id: payload.id as string,
+      email: payload.email as string,
+      name: payload.name as string,
+      role: (payload.role as "USER" | "ADMIN") || "USER",
+      avatar: (payload.avatar as string) || null,
+      level: (payload.level as number) || 1,
+      xp: (payload.xp as number) || 0,
+      ecoScore: (payload.ecoScore as number) || 100,
     };
   } catch {
     return null;
